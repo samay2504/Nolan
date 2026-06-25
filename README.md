@@ -67,8 +67,8 @@
 First, clone the repository and generate your local development secrets.
 
 ```bash
-git clone https://github.com/samaymehar/nolan.git
-cd nolan
+git clone https://github.com/samay2504/Nolan.git
+cd Nolan
 
 # Generate .env file secrets
 ./scripts/gen-secrets.sh      # Linux / macOS
