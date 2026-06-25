@@ -1,0 +1,9 @@
+**/.git
+**/target/
+**/.idea
+**/.vscode
+**/*.swp
+**/.DS_Store
+**/Thumbs.db
+**/tmp/
+**/.env

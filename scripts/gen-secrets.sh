@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -e
+
+# Generate secure random passwords
+VALKEY_DEFAULT_PASSWORD=$(openssl rand -hex 16)
+CONTROLPLANE_VALKEY_PASSWORD=$(openssl rand -hex 16)
+WORKER_VALKEY_PASSWORD=$(openssl rand -hex 16)
+MINIO_ROOT_PASSWORD=$(openssl rand -hex 16)
+POSTGRES_PASSWORD=$(openssl rand -hex 16)
+
+# Create .env file
+cat > .env <<EOF
+# Valkey
+VALKEY_DEFAULT_PASSWORD=${VALKEY_DEFAULT_PASSWORD}
+CONTROLPLANE_VALKEY_PASSWORD=${CONTROLPLANE_VALKEY_PASSWORD}
+WORKER_VALKEY_PASSWORD=${WORKER_VALKEY_PASSWORD}
+
+# MinIO
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+MINIO_ENDPOINT=minio:9000
+
+# PostgreSQL
+POSTGRES_DB=nolan
+POSTGRES_USER=nolan
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+DATABASE_URL=postgres://nolan:${POSTGRES_PASSWORD}@postgres:5432/nolan?sslmode=disable
+
+# Storage
+RAW_INPUT_RETENTION_DAYS=30
+
+# Control Plane
+CONTROL_PLANE_PORT=8080
+PRESIGNED_UPLOAD_TTL=15m
+PRESIGNED_DOWNLOAD_TTL=1h
+
+# Worker
+WORKER_CONCURRENCY=2
+MAX_JOB_RETRIES=3
+RECLAIM_TIMEOUT_MS=300000
+
+# Envoy
+ENVOY_PORT=8443
+EOF
+
+echo ".env generated successfully with secure random passwords."

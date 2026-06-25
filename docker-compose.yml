@@ -1,0 +1,142 @@
+services:
+  valkey:
+    image: valkey/valkey:8.1-alpine
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - valkey-data:/data
+      - ./config/valkey.conf:/etc/valkey/valkey.conf:ro
+      - ./config/valkey-acl.conf.template:/etc/valkey/users.acl.template:ro
+      - ./scripts/init-valkey.sh:/usr/local/bin/init-valkey.sh:ro
+    environment:
+      - VALKEY_DEFAULT_PASSWORD=${VALKEY_DEFAULT_PASSWORD}
+      - CONTROLPLANE_VALKEY_PASSWORD=${CONTROLPLANE_VALKEY_PASSWORD}
+      - WORKER_VALKEY_PASSWORD=${WORKER_VALKEY_PASSWORD}
+    entrypoint: ["/bin/sh", "/usr/local/bin/init-valkey.sh"]
+    networks:
+      - pipeline-internal
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - pipeline-internal
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address :9001
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - minio-data:/data
+    networks:
+      - pipeline-internal
+      - pipeline-public
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - RAW_INPUT_RETENTION_DAYS=${RAW_INPUT_RETENTION_DAYS}
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+      /usr/bin/mc mb --ignore-existing local/raw-input;
+      /usr/bin/mc mb --ignore-existing local/processed;
+      /usr/bin/mc ilm add --expiry-days $${RAW_INPUT_RETENTION_DAYS} local/raw-input;
+      /usr/bin/mc anonymous set download local/processed;
+      "
+    networks:
+      - pipeline-internal
+
+  control-plane:
+    build:
+      context: .
+      dockerfile: control-plane/Dockerfile
+    depends_on:
+      valkey:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - CONTROL_PLANE_PORT=${CONTROL_PLANE_PORT}
+      - VALKEY_ADDR=valkey:6379
+      - VALKEY_USER=controlplane
+      - VALKEY_PASSWORD=${CONTROLPLANE_VALKEY_PASSWORD}
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - POSTGRES_DSN=${DATABASE_URL}
+    networks:
+      - pipeline-internal
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    depends_on:
+      valkey:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+    deploy:
+      replicas: 2
+    restart: always
+    networks:
+      - pipeline-internal
+
+  envoy:
+    image: envoyproxy/envoy:v1.32-latest
+    volumes:
+      - ./config/envoy.yaml:/etc/envoy/envoy.yaml:ro
+    ports:
+      - "${ENVOY_PORT}:8443"
+    depends_on:
+      - control-plane
+      - minio
+    networks:
+      - pipeline-internal
+      - pipeline-public
+
+networks:
+  pipeline-internal:
+    internal: true
+  pipeline-public:
+
+volumes:
+  valkey-data:
+  postgres-data:
+  minio-data:

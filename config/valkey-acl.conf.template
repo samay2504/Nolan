@@ -1,0 +1,3 @@
+user default on >${VALKEY_DEFAULT_PASSWORD} ~* +@all
+user controlplane on >${CONTROLPLANE_VALKEY_PASSWORD} ~pipeline:job:* ~pipeline:jobs:* +@connection +xadd +xlen +xinfo +hset +hget +hgetall +set +get +del +expire +exists
+user worker on >${WORKER_VALKEY_PASSWORD} ~pipeline:job:* ~pipeline:jobs:* +@connection +xreadgroup +xack +xclaim +xpending +xautoclaim +hget +hset +hgetall +set +get +exists +expire +xgroup +xadd

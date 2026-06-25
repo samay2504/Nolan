@@ -1,0 +1,46 @@
+// Copyright 2026 Samay Mehar
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+package pipeline.v1;
+
+option go_package = "github.com/samaymehar/nolan/control-plane/gen/pipeline/v1;pipelinev1";
+
+message TranscodeJob {
+  string job_id              = 1;
+  string video_id            = 2;
+  string source_bucket       = 3;
+  string source_key          = 4;
+  repeated Rendition targets = 5;
+  int64 enqueued_at_unix_ms  = 6;
+  int32 attempt              = 7;
+}
+
+message Rendition {
+  enum Resolution {
+    RES_UNSPECIFIED = 0;
+    RES_480P        = 1;
+    RES_720P        = 2;
+    RES_1080P       = 3;
+    RES_4K          = 4;
+  }
+  Resolution resolution = 1;
+  string container       = 2;
+}
+
+message JobStatusUpdate {
+  string job_id   = 1;
+  Status status   = 2;
+  int32  attempt  = 3;
+  string error    = 4;
+  int64  updated_at_unix_ms = 5;
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_QUEUED      = 1;
+    STATUS_PROCESSING  = 2;
+    STATUS_COMPLETED   = 3;
+    STATUS_FAILED      = 4;
+    STATUS_DLQ         = 5;
+  }
+}

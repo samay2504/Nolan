@@ -1,0 +1,26 @@
+# Environment
+.env
+!.env.example
+
+# Go
+control-plane/vendor/
+control-plane/control-plane
+*.exe
+
+# Rust
+worker/target/
+*.pdb
+
+# Generated Proto
+control-plane/gen/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Docker
+volumes/
+tmp/

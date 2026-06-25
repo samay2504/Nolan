@@ -1,0 +1,11 @@
+# Copyright 2026 Samay Mehar
+# SPDX-License-Identifier: Apache-2.0
+version: v2
+modules:
+  - path: .
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE
