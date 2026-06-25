@@ -21,7 +21,7 @@ Once Nolan reaches 1.0, this table will be updated to reflect a formal support w
 
 Instead, please report vulnerabilities via email:
 
-📧 **security@nolan-project.dev**
+📧 **samay.m2504@gmail.com**
 
 ### What to Include
 
