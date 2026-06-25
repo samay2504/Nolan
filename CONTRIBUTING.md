@@ -46,9 +46,9 @@ This project follows the [Contributor Covenant Code of Conduct](https://www.cont
 
 ```bash
 # 1. Fork and clone
-git clone https://github.com/<your-username>/nolan.git
+git clone https://github.com/samay2504/nolan.git
 cd nolan
-git remote add upstream https://github.com/samaymehar/nolan.git
+git remote add upstream https://github.com/samay2504/nolan.git
 
 # 2. Generate development secrets
 ./scripts/gen-secrets.sh
